@@ -1,5 +1,5 @@
 """
-First (Ratio) Idea
+First (Ratio) Idea to Detect Windows
 We'll probably have to do noise reduction
 """
 import numpy as np
@@ -20,3 +20,4 @@ def isWindow(First,Second,epsilon):
     """
     ratios=First/Second
     return np.logical_or(ratios<=(1/epsilon),ratios>=epsilon)
+print(isWindow(first,second,1.5))
