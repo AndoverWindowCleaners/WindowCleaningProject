@@ -6,6 +6,9 @@ import numpy as np
 first=np.ones((10,5))
 second=np.ones((10,5))
 second[4:8,1]=1.5
+def noiseReduce(X,neighbors):
+    """Edit here if you want to do noise reduction 2d"""
+    pass
 def isWindow(First,Second,epsilon):
     """
     First and Second are numpy arrays of images
