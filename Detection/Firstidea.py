@@ -1,5 +1,7 @@
 """
 First (Ratio) Idea to Detect Windows
+Functions in this function should take in a numpy array of pixel values and
+end up returning distance the drone should move in each direction
 We'll probably have to do noise reduction
 """
 import numpy as np
