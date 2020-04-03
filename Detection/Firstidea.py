@@ -20,4 +20,14 @@ def isWindow(First,Second,epsilon):
     """
     ratios=First/Second
     return np.logical_or(ratios<=(1/epsilon),ratios>=epsilon)
+    #Remember that this function also needs to determine how many windows there are and their centers
 print(isWindow(first,second,1.5))
+def move(coords):
+    """coords should be a list of tuples
+    Each tuple should contain the coordinates(in the array/picture) for the center of the window
+    Depending on how sensors work, we might take a few more arguments (distance to wall and angle)
+    
+    Returns:
+        Tuple: How far in each direction the drone should move
+    """
+    pass
