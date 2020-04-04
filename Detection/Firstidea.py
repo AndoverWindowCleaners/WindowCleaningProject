@@ -22,13 +22,18 @@ def isWindow(First,Second,epsilon):
     """
     ratios=First/Second
     return np.logical_or(ratios<=(1/epsilon),ratios>=epsilon)
-print(isWindow(first,second,1.5))
-def move(coords):
-    """coords should be a list of tuples
-    Each tuple should contain the coordinates(in the array/picture) for the center of the window
-    Depending on how sensors work, we might take a few more arguments (distance to wall and angle)
-    
-    Returns:
-        Tuple: How far in each direction the drone should move
+#rint(isWindow(first,second,1.5))
+def spray(processedimg,sizes):
     """
-    pass
+    processedimg is numpy array with True for window and False for others
+    sizes is tuple of the percent of each dimension the image should check
+    
+    Returns boolean with whether or not drone should spray
+    """
+    x,y=processedimg.shape
+    for size in sizes:
+        if np.mean(processedimg[int((1-size)*x//2):int((1+size)*x//2+1),int((1-size)*y//2):int((1+size)*y//2+1)])<0.5:
+            return False
+    return True
+print(spray(isWindow(first,second,1.5),(0.5,)))
+        
