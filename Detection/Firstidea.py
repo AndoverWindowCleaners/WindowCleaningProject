@@ -22,7 +22,6 @@ def isWindow(First,Second,epsilon):
     """
     ratios=First/Second
     return np.logical_or(ratios<=(1/epsilon),ratios>=epsilon)
-    #Remember that this function also needs to determine how many windows there are and their centers
 print(isWindow(first,second,1.5))
 def move(coords):
     """coords should be a list of tuples
