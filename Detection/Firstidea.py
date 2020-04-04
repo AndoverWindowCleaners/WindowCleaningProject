@@ -32,6 +32,7 @@ def spray(processedimg,sizes):
     """
     x,y=processedimg.shape
     for size in sizes:
+        #expression takes the middle part of processedimg that is size of total size
         if np.mean(processedimg[int((1-size)*x//2):int((1+size)*x//2+1),int((1-size)*y//2):int((1+size)*y//2+1)])<0.5:
             return False
     return True
