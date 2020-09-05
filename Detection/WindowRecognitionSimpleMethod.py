@@ -46,7 +46,7 @@ def image_pooling(image, half_box_size, stride):
         ci=0
         for col in range(half_box_size,len(image[0])-half_box_size,stride):
             cutoutImage = image[(row-half_box_size):(row+half_box_size+1),(col-half_box_size):(col+half_box_size+1)]
-            newImage[ri,ci] = sum(sum(cutoutImage))
+            newImage[ri,ci] = sum(sum(cutoutImage))/(4*half_box_size**2)
             ci+=1
         ri+=1
             
