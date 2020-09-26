@@ -53,7 +53,7 @@ def image_pooling(image, half_box_size, stride):
 def find_block(image):  # to be implemented
     pass
 
-while(True):
+while True:
     input_frames[start_frame] =  get_new_frame()
     delta_time = 1  # get the delta time using api provided by raspberry PI or arduino
     derivative1[start_frame] = (input_frames[start_frame]-input_frames[start_frame-1])/delta_time
