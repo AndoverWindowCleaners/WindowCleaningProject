@@ -8,14 +8,16 @@ Created on Wed Sep  2 13:48:06 2020
 
 import numpy as np
 import math
+import cv2
+import time
 
-num_frame = 5
-frame_width=28
-frame_height=28
-input_frames = np.zeros((num_frame,frame_width,frame_height), dtype = 'float')
-derivative1 = np.zeros((num_frame,frame_width,frame_height), dtype = 'float')
-derivative2_corrected = np.zeros((num_frame,frame_width,frame_height), dtype = 'float')
-differences = np.zeros((num_frame,frame_width,frame_height), dtype = 'float')
+num_frame = 60
+frame_width=1280
+frame_height=1280
+input_frames = np.zeros((num_frame,frame_width,frame_height), dtype = np.float32)
+derivative1 = np.zeros((num_frame,frame_width,frame_height), dtype = np.float32)
+derivative2_corrected = np.zeros((num_frame,frame_width,frame_height), dtype = np.float32)
+differences = np.zeros((num_frame,frame_width,frame_height), dtype = np.float32)
 # note that these numpy arrays are used as cyclic arrays
 start_frame = 0
 rotation_frequency = 1  # enter in revolution per second
@@ -40,20 +42,28 @@ def get_new_frame():    # to be implemented in coordination with the camera
 def image_pooling(image, half_box_size, stride):    
     # avery poor implementation, to be replaced
     # by prefix sum or rolling implementation
-    newImage = np.zeros((int((len(image)-half_box_size*2+1)/stride),int((len(image[0])-half_box_size*2+1)/stride)),dtype='float')
-    ri=0
-    for row in range(half_box_size,len(image)-half_box_size,stride):
-        ci=0
-        for col in range(half_box_size,len(image[0])-half_box_size,stride):
-            cutoutImage = image[(row-half_box_size):(row+half_box_size+1),(col-half_box_size):(col+half_box_size+1)]
-            newImage[ri,ci] = sum(sum(cutoutImage))/(4*half_box_size**2)
-            ci+=1
-        ri+=1
+    return cv2.resize(image,(frame_width, frame_height),interpolation=cv2.INTER_AREA)
+    # newImage = np.zeros((int((len(image)-half_box_size*2+1)/stride),int((len(image[0])-half_box_size*2+1)/stride)),dtype='float')
+    # ri=0
+    # for row in range(half_box_size,len(image)-half_box_size,stride):
+    #     ci=0
+    #     for col in range(half_box_size,len(image[0])-half_box_size,stride):
+    #         cutoutImage = image[(row-half_box_size):(row+half_box_size+1),(col-half_box_size):(col+half_box_size+1)]
+    #         newImage[ri,ci] = sum(sum(cutoutImage))/(4*half_box_size**2)
+    #         ci+=1
+    #     ri+=1
             
 def find_block(image):  # to be implemented
     pass
-
+count = 1
 while True:
+    if count % 10 == 0:
+        try:
+            print(time.time()-start)
+        except:
+            pass
+        start = time.time()
+    
     input_frames[start_frame] =  get_new_frame()
     delta_time = 1  # get the delta time using api provided by raspberry PI or arduino
     derivative1[start_frame] = (input_frames[start_frame]-input_frames[start_frame-1])/delta_time
@@ -73,4 +83,5 @@ while True:
     
     variances = image_pooling(variances,1,2)
     find_block(variances)
+    count +=1
     
