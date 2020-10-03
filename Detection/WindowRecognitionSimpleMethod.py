@@ -44,7 +44,7 @@ difference_square_sum = sum([i**2 for i in differences])
 
 
 def get_new_frame():    # to be implemented in coordination with the camera
-    pass
+    return np.zeros((2040,2040), dtype=np.float32)
 
 
 def image_pooling(image, new_width, new_height):
@@ -54,10 +54,10 @@ def image_pooling(image, new_width, new_height):
 def find_block(image):  # to be implemented
     pass
 
-
+start = 0
 count = 1
 while True:
-    if count % 10 == 0:
+    if count % 100 == 0:
         print(time.time()-start)
         start = time.time()
 
@@ -74,13 +74,13 @@ while True:
     difference_sum -= differences[start_frame-1]
     difference_square_sum -= differences[start_frame-1]**2
     differences[start_frame-1] = cur_derivative2_corrected + \
-        input_frames[start_frame-1]
+        input_frames[(start_frame-1)%2]
     difference_sum += differences[start_frame-1]
     difference_square_sum += differences[start_frame-1]**2
     variances = (difference_square_sum/num_frame-(difference_sum/num_frame)**2)
     # note this is only an estimation of variance, not the actual variance, which may be difficult
     # to evaluate on a rolling basis
-
+        
     start_frame += 1
     start_frame %= num_frame
 
