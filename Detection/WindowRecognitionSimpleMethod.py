@@ -10,6 +10,7 @@ import numpy as np
 import math
 import cv2
 import time
+import resource
 from queue import Queue
 
 num_frame = 600
@@ -104,7 +105,8 @@ start = 0
 count = 1
 while True:
     if count % 100 == 0:
-        print(time.time()-start)
+        print('memory ',resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        print('time ',time.time()-start)
         start = time.time()
     input_sum -= input_frames[start_frame]
     input_square_sum -= input_frames[start_frame]**2
