@@ -13,7 +13,7 @@ import time
 import resource
 from queue import Queue
 
-num_frame = 600
+num_frame = 45
 frame_width = 128
 frame_height = 128
 target_frame_width = 28
@@ -54,12 +54,12 @@ def get_new_frame():    # to be implemented in coordination with the camera
 
 
 def image_pooling(image, new_width, new_height):
-    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image, (new_height, new_width), interpolation=cv2.INTER_AREA)
 
 
-def get_logarithmic(diff_variance, input_variance):  
+def get_logarithmic(diff_variance, input_variance):
     # to be implemented, get log probability of being window
-    return (0.5-diff_variance)*(input_variance-0.5) # just a place holder
+    return (0.5-diff_variance)*(input_variance-0.5)  # just a place holder
 
 
 def find_block(diff_variance, input_variance):
@@ -105,9 +105,10 @@ start = 0
 count = 1
 while True:
     if count % 100 == 0:
-        print('memory ',resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-        print('time ',time.time()-start)
+        print('memory ', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        print('time ', time.time()-start)
         start = time.time()
+
     input_sum -= input_frames[start_frame]
     input_square_sum -= input_frames[start_frame]**2
     input_frames[start_frame] = image_pooling(
@@ -123,6 +124,7 @@ while True:
     cur_derivative2_corrected = (
         derivative1[start_frame % 2]-derivative1[(start_frame-1) % 2])/delta_time
     cur_derivative2_corrected /= frequency_const**2
+
     difference_sum -= differences[start_frame-1]
     difference_square_sum -= differences[start_frame-1]**2
     differences[start_frame-1] = cur_derivative2_corrected + \
@@ -133,13 +135,12 @@ while True:
     # note this is only an estimation of variance, not the actual variance, which may be difficult
     # to evaluate on a rolling basis
 
-    start_frame += 1
-    start_frame %= num_frame
+    start_frame = (start_frame+1) % num_frame
 
     variances = image_pooling(
         variances, target_frame_width, target_frame_height)
     input_variance = image_pooling(
         input_variance, target_frame_width, target_frame_height)
     windowPos = find_block(variances/(light_intensity_correction**2),
-               input_variance/(light_intensity_correction**2))
+                           input_variance/(light_intensity_correction**2))
     count += 1
