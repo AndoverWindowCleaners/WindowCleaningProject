@@ -100,47 +100,64 @@ def find_block(diff_variance, input_variance):
     return windowPositions
     # returns the average positions of windows as weighted by their probability of being a window
 
+def computeRollingVariance(square_sum, sum, num_elements):
+    return (square_sum/num_elements-(sum/num_elements)**2)
 
 start = 0
 count = 1
 while True:
+    delta_time = 1.0  # get the delta time using api provided by raspberry PI or arduino
+    count += 1
     if count % 100 == 0:
         print('memory ', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         print('time ', time.time()-start)
         start = time.time()
-
+    
+    # dequeue variance
     input_sum -= input_frames[start_frame]
     input_square_sum -= input_frames[start_frame]**2
+    difference_sum -= differences[start_frame-1]
+    difference_square_sum -= differences[start_frame-1]**2
+
+    # read in image
     input_frames[start_frame] = image_pooling(
         get_new_frame(), frame_width, frame_height)
-    input_sum += input_frames[start_frame]
-    input_square_sum += input_frames[start_frame]**2
-    input_variance = (input_square_sum/num_frame-(input_sum/num_frame)**2)
 
-    delta_time = 1.0  # get the delta time using api provided by raspberry PI or arduino
+    # compute first derivative
     derivative1[start_frame % 2] = (
         input_frames[start_frame]-input_frames[(start_frame-1)])/delta_time
 
+    # compute second derivative and correct its coefficient
     cur_derivative2_corrected = (
         derivative1[start_frame % 2]-derivative1[(start_frame-1) % 2])/delta_time
     cur_derivative2_corrected /= frequency_const**2
 
-    difference_sum -= differences[start_frame-1]
-    difference_square_sum -= differences[start_frame-1]**2
+    # compute difference between image and its second derivative. It's actually a + 
+    # because of the negative sign from differentiation
     differences[start_frame-1] = cur_derivative2_corrected + \
         input_frames[(start_frame-1)]
+
+    # add in new variance of the newly read in image and newly computed difference
+    input_sum += input_frames[start_frame]
+    input_square_sum += input_frames[start_frame]**2
     difference_sum += differences[start_frame-1]
     difference_square_sum += differences[start_frame-1]**2
-    variances = (difference_square_sum/num_frame-(difference_sum/num_frame)**2)
+
+    # recompute variances
+    input_variance = computeRollingVariance(input_square_sum,input_sum,num_frame)
+    variances = computeRollingVariance(difference_square_sum,difference_sum,num_frame)
     # note this is only an estimation of variance, not the actual variance, which may be difficult
     # to evaluate on a rolling basis
 
-    start_frame = (start_frame+1) % num_frame
-
+    # scale down variance to ensure connectiveness
     variances = image_pooling(
         variances, target_frame_width, target_frame_height)
     input_variance = image_pooling(
         input_variance, target_frame_width, target_frame_height)
+
+    # increment the modulo index counter
+    start_frame = (start_frame+1) % num_frame
+
+    # find windows
     windowPos = find_block(variances/(light_intensity_correction**2),
                            input_variance/(light_intensity_correction**2))
-    count += 1
