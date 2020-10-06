@@ -1,16 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep  2 13:48:06 2020
-
-@author: michaelhyh
-"""
-
 import numpy as np
 import math
 import cv2
 import time
-import resource
+# import resource
 from queue import Queue
 
 num_frame = 45
@@ -22,13 +14,13 @@ light_intensity_correction = 127.5
 
 
 input_frames = np.zeros(
-    (num_frame, frame_height, frame_width), dtype=np.float32)
+    (frame_height, frame_width, num_frame), dtype=np.float32)
 derivative1 = np.zeros(
-    (2, frame_height, frame_width), dtype=np.float32)
+    (frame_height, frame_width,2), dtype=np.float32)
 cur_derivative2_corrected = np.zeros(
     (frame_height, frame_width), dtype=np.float32)
 differences = np.zeros(
-    (num_frame, frame_height, frame_width), dtype=np.float32)
+    (frame_height, frame_width, num_frame), dtype=np.float32)
 # note that these numpy arrays are used as cyclic arrays
 start_frame = 0
 rotation_frequency = 1  # enter in revolution per second
@@ -43,10 +35,10 @@ rotation_frequency = 1  # enter in revolution per second
 # the key is to know b, which is equal to frequency*2pi
 frequency_const = rotation_frequency*2*math.pi
 
-difference_sum = sum(differences)
-difference_square_sum = sum([i**2 for i in differences])
-input_sum = sum(input_frames)
-input_square_sum = sum([i**2 for i in input_frames])
+difference_sum = np.sum(differences,axis=2)
+difference_square_sum = np.square(difference_sum)
+input_sum = np.sum(input_frames,axis=2)
+input_square_sum = np.square(input_sum)
 
 
 def get_new_frame():    # to be implemented in coordination with the camera
@@ -54,7 +46,7 @@ def get_new_frame():    # to be implemented in coordination with the camera
 
 
 def image_pooling(image, new_width, new_height):
-    return cv2.resize(image, (new_height, new_width), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
 def get_logarithmic(diff_variance, input_variance):
@@ -67,7 +59,7 @@ def find_block(diff_variance, input_variance):
     # than some certain value and the diff_variance has to be smaller
     # than some certain value for that pixel to be considered a window
     windowMarker = np.zeros(
-        (target_frame_height, target_frame_width), dtype=np.int)
+        (target_frame_height, target_frame_width), dtype=np.int32)
     windowLog = get_logarithmic(diff_variance, input_variance)
     windowPixels = windowLog > 0
     windowPositions = []
@@ -100,8 +92,8 @@ def find_block(diff_variance, input_variance):
     return windowPositions
     # returns the average positions of windows as weighted by their probability of being a window
 
-def computeRollingVariance(square_sum, sum, num_elements):
-    return (square_sum/num_elements-(sum/num_elements)**2)
+def computeRollingVariance(square_sum, s, num_elements):
+    return (square_sum/num_elements-np.square((s/num_elements)))
 
 start = 0
 count = 1
@@ -109,39 +101,39 @@ while True:
     delta_time = 1.0  # get the delta time using api provided by raspberry PI or arduino
     count += 1
     if count % 100 == 0:
-        print('memory ', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+        # print('memory ', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         print('time ', time.time()-start)
         start = time.time()
     
     # dequeue variance
-    input_sum -= input_frames[start_frame]
-    input_square_sum -= input_frames[start_frame]**2
-    difference_sum -= differences[start_frame-1]
-    difference_square_sum -= differences[start_frame-1]**2
+    input_sum -= input_frames[:,:,start_frame]
+    input_square_sum -= input_frames[:,:,start_frame]**2
+    difference_sum -= differences[:,:,start_frame-1]
+    difference_square_sum -= differences[:,:,start_frame-1]**2
 
     # read in image
-    input_frames[start_frame] = image_pooling(
+    input_frames[:,:,start_frame] = image_pooling(
         get_new_frame(), frame_width, frame_height)
 
     # compute first derivative
-    derivative1[start_frame % 2] = (
-        input_frames[start_frame]-input_frames[(start_frame-1)])/delta_time
+    derivative1[:,:,start_frame % 2] = (
+        input_frames[:,:,start_frame]-input_frames[:,:,(start_frame-1)])/delta_time
 
     # compute second derivative and correct its coefficient
     cur_derivative2_corrected = (
-        derivative1[start_frame % 2]-derivative1[(start_frame-1) % 2])/delta_time
+        derivative1[:,:,start_frame % 2]-derivative1[:,:,(start_frame-1) % 2])/delta_time
     cur_derivative2_corrected /= frequency_const**2
 
     # compute difference between image and its second derivative. It's actually a + 
     # because of the negative sign from differentiation
-    differences[start_frame-1] = cur_derivative2_corrected + \
-        input_frames[(start_frame-1)]
+    differences[:,:,start_frame-1] = cur_derivative2_corrected + \
+        input_frames[:,:,(start_frame-1)]
 
     # add in new variance of the newly read in image and newly computed difference
-    input_sum += input_frames[start_frame]
-    input_square_sum += input_frames[start_frame]**2
-    difference_sum += differences[start_frame-1]
-    difference_square_sum += differences[start_frame-1]**2
+    input_sum += input_frames[:,:,start_frame]
+    input_square_sum += input_frames[:,:,start_frame]**2
+    difference_sum += differences[:,:,start_frame-1]
+    difference_square_sum += differences[:,:,start_frame-1]**2
 
     # recompute variances
     input_variance = computeRollingVariance(input_square_sum,input_sum,num_frame)
