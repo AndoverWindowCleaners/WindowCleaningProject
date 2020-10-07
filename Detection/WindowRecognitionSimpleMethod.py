@@ -48,7 +48,7 @@ def image_pooling(image, new_width, new_height):
     return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
-def get_logarithmic(diff_variance, input_variance):
+def get_logistic(diff_variance, input_variance):
     # to be implemented, get log probability of being window
     return (0.5-diff_variance)*(input_variance-0.5)  # just a place holder
 
@@ -59,7 +59,7 @@ def find_block(diff_variance, input_variance):
     # than some certain value for that pixel to be considered a window
     windowMarker = np.zeros(
         (target_frame_height, target_frame_width), dtype=np.int)
-    windowLog = get_logarithmic(diff_variance, input_variance)
+    windowLog = get_logistic(diff_variance, input_variance)
     windowPixels = windowLog > 0
     windowPositions = []
     windowCount = 0
@@ -105,9 +105,9 @@ while True:
 
     # dequeue variance
     input_sum -= input_frames[start_frame]
-    input_square_sum -= input_frames[start_frame]**2
+    input_square_sum -= np.square(input_frames[start_frame])
     difference_sum -= differences[start_frame-1]
-    difference_square_sum -= differences[start_frame-1]**2
+    difference_square_sum -= np.square(differences[start_frame-1])
 
     # read in image
     input_frames[start_frame] = image_pooling(
