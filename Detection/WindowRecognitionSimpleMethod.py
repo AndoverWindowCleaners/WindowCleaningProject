@@ -36,9 +36,9 @@ rotation_frequency = 1  # enter in revolution per second
 frequency_const = rotation_frequency*2*math.pi
 
 difference_sum = np.sum(differences,axis=2)
-difference_square_sum = np.square(difference_sum)
+difference_square_sum = np.sum(np.square(difference_sum),axis=2)
 input_sum = np.sum(input_frames,axis=2)
-input_square_sum = np.square(input_sum)
+input_square_sum = np.sum(np.square(input_sum),axis=2)
 
 
 def get_new_frame():    # to be implemented in coordination with the camera
