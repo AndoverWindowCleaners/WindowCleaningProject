@@ -1,16 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep  2 13:48:06 2020
-
-@author: michaelhyh
-"""
-
 import numpy as np
 import math
 import cv2
 import time
-import resource
 from queue import Queue
 
 num_frame = 45
@@ -43,10 +34,10 @@ rotation_frequency = 1  # enter in revolution per second
 # the key is to know b, which is equal to frequency*2pi
 frequency_const = rotation_frequency*2*math.pi
 
-difference_sum = sum(differences)
-difference_square_sum = sum([i**2 for i in differences])
-input_sum = sum(input_frames)
-input_square_sum = sum([i**2 for i in input_frames])
+difference_sum = np.sum(differences,axis=0)
+difference_square_sum = np.sum(np.square(differences),axis=0)
+input_sum = np.sum(input_frames,axis=0)
+input_square_sum = np.sum(np.square(input_frames),axis=0)
 
 
 def get_new_frame():    # to be implemented in coordination with the camera
@@ -54,7 +45,7 @@ def get_new_frame():    # to be implemented in coordination with the camera
 
 
 def image_pooling(image, new_width, new_height):
-    return cv2.resize(image, (new_height, new_width), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
 def get_logarithmic(diff_variance, input_variance):
@@ -109,10 +100,9 @@ while True:
     delta_time = 1.0  # get the delta time using api provided by raspberry PI or arduino
     count += 1
     if count % 100 == 0:
-        print('memory ', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         print('time ', time.time()-start)
         start = time.time()
-    
+
     # dequeue variance
     input_sum -= input_frames[start_frame]
     input_square_sum -= input_frames[start_frame]**2
@@ -132,7 +122,7 @@ while True:
         derivative1[start_frame % 2]-derivative1[(start_frame-1) % 2])/delta_time
     cur_derivative2_corrected /= frequency_const**2
 
-    # compute difference between image and its second derivative. It's actually a + 
+    # compute difference between image and its second derivative. It's actually a +
     # because of the negative sign from differentiation
     differences[start_frame-1] = cur_derivative2_corrected + \
         input_frames[(start_frame-1)]
