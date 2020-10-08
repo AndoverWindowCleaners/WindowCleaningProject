@@ -2,7 +2,6 @@ import numpy as np
 import math
 import cv2
 import time
-# import resource
 from queue import Queue
 
 num_frame = 45
@@ -35,10 +34,10 @@ rotation_frequency = 1  # enter in revolution per second
 # the key is to know b, which is equal to frequency*2pi
 frequency_const = rotation_frequency*2*math.pi
 
-difference_sum = np.sum(differences,axis=2)
-difference_square_sum = np.sum(np.square(difference_sum),axis=2)
-input_sum = np.sum(input_frames,axis=2)
-input_square_sum = np.sum(np.square(input_sum),axis=2)
+difference_sum = np.sum(differences,axis=0)
+difference_square_sum = np.sum(np.square(differences),axis=0)
+input_sum = np.sum(input_frames,axis=0)
+input_square_sum = np.sum(np.square(input_frames),axis=0)
 
 
 def get_new_frame():    # to be implemented in coordination with the camera
@@ -49,7 +48,7 @@ def image_pooling(image, new_width, new_height):
     return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
-def get_logarithmic(diff_variance, input_variance):
+def get_logistic(diff_variance, input_variance):
     # to be implemented, get log probability of being window
     return (0.5-diff_variance)*(input_variance-0.5)  # just a place holder
 
@@ -59,8 +58,8 @@ def find_block(diff_variance, input_variance):
     # than some certain value and the diff_variance has to be smaller
     # than some certain value for that pixel to be considered a window
     windowMarker = np.zeros(
-        (target_frame_height, target_frame_width), dtype=np.int32)
-    windowLog = get_logarithmic(diff_variance, input_variance)
+        (target_frame_height, target_frame_width), dtype=np.int)
+    windowLog = get_logistic(diff_variance, input_variance)
     windowPixels = windowLog > 0
     windowPositions = []
     windowCount = 0
@@ -101,15 +100,14 @@ while True:
     delta_time = 1.0  # get the delta time using api provided by raspberry PI or arduino
     count += 1
     if count % 100 == 0:
-        # print('memory ', resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         print('time ', time.time()-start)
         start = time.time()
-    
+
     # dequeue variance
-    input_sum -= input_frames[:,:,start_frame]
-    input_square_sum -= input_frames[:,:,start_frame]**2
-    difference_sum -= differences[:,:,start_frame-1]
-    difference_square_sum -= differences[:,:,start_frame-1]**2
+    input_sum -= input_frames[start_frame]
+    input_square_sum -= np.square(input_frames[start_frame])
+    difference_sum -= differences[start_frame-1]
+    difference_square_sum -= np.square(differences[start_frame-1])
 
     # read in image
     input_frames[:,:,start_frame] = image_pooling(
@@ -124,7 +122,7 @@ while True:
         derivative1[:,:,start_frame % 2]-derivative1[:,:,(start_frame-1) % 2])/delta_time
     cur_derivative2_corrected /= frequency_const**2
 
-    # compute difference between image and its second derivative. It's actually a + 
+    # compute difference between image and its second derivative. It's actually a +
     # because of the negative sign from differentiation
     differences[:,:,start_frame-1] = cur_derivative2_corrected + \
         input_frames[:,:,(start_frame-1)]
