@@ -13,13 +13,13 @@ light_intensity_correction = 127.5
 
 
 input_frames = np.zeros(
-    (frame_height, frame_width, num_frame), dtype=np.float32)
+    (num_frame, frame_height, frame_width), dtype=np.float32)
 derivative1 = np.zeros(
-    (frame_height, frame_width,2), dtype=np.float32)
+    (2, frame_height, frame_width), dtype=np.float32)
 cur_derivative2_corrected = np.zeros(
     (frame_height, frame_width), dtype=np.float32)
 differences = np.zeros(
-    (frame_height, frame_width, num_frame), dtype=np.float32)
+    (num_frame, frame_height, frame_width), dtype=np.float32)
 # note that these numpy arrays are used as cyclic arrays
 start_frame = 0
 rotation_frequency = 1  # enter in revolution per second
@@ -38,10 +38,17 @@ difference_sum = np.sum(differences,axis=0)
 difference_square_sum = np.sum(np.square(differences),axis=0)
 input_sum = np.sum(input_frames,axis=0)
 input_square_sum = np.sum(np.square(input_frames),axis=0)
-
+video_path = 'Clock_Face_2Videvo.mov'
+cap = cv2.VideoCapture(video_path)
 
 def get_new_frame():    # to be implemented in coordination with the camera
-    return np.zeros((2040, 2040), dtype=np.float32)
+    # ret, frame = cap.read()
+    # return frame
+    frame = np.ones((2040,2040),dtype=np.float32)
+    frame[0,1] = 3
+    frame[1,0] = 3
+    return frame
+    
 
 
 def image_pooling(image, new_width, new_height):
@@ -110,28 +117,28 @@ while True:
     difference_square_sum -= np.square(differences[start_frame-1])
 
     # read in image
-    input_frames[:,:,start_frame] = image_pooling(
+    input_frames[start_frame] = image_pooling(
         get_new_frame(), frame_width, frame_height)
 
     # compute first derivative
-    derivative1[:,:,start_frame % 2] = (
-        input_frames[:,:,start_frame]-input_frames[:,:,(start_frame-1)])/delta_time
+    derivative1[start_frame % 2] = (
+        input_frames[start_frame]-input_frames[(start_frame-1)])/delta_time
 
     # compute second derivative and correct its coefficient
     cur_derivative2_corrected = (
-        derivative1[:,:,start_frame % 2]-derivative1[:,:,(start_frame-1) % 2])/delta_time
+        derivative1[start_frame % 2]-derivative1[(start_frame-1) % 2])/delta_time
     cur_derivative2_corrected /= frequency_const**2
 
     # compute difference between image and its second derivative. It's actually a +
     # because of the negative sign from differentiation
-    differences[:,:,start_frame-1] = cur_derivative2_corrected + \
-        input_frames[:,:,(start_frame-1)]
+    differences[start_frame-1] = cur_derivative2_corrected + \
+        input_frames[(start_frame-1)]
 
     # add in new variance of the newly read in image and newly computed difference
-    input_sum += input_frames[:,:,start_frame]
-    input_square_sum += input_frames[:,:,start_frame]**2
-    difference_sum += differences[:,:,start_frame-1]
-    difference_square_sum += differences[:,:,start_frame-1]**2
+    input_sum += input_frames[start_frame]
+    input_square_sum += input_frames[start_frame]**2
+    difference_sum += differences[start_frame-1]
+    difference_square_sum += differences[start_frame-1]**2
 
     # recompute variances
     input_variance = computeRollingVariance(input_square_sum,input_sum,num_frame)
@@ -151,3 +158,4 @@ while True:
     # find windows
     windowPos = find_block(variances/(light_intensity_correction**2),
                            input_variance/(light_intensity_correction**2))
+    print(variances)
