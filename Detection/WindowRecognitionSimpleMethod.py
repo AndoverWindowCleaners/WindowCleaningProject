@@ -1,3 +1,4 @@
+import tensorflow as tf
 import numpy as np
 import math
 import cv2
@@ -48,16 +49,28 @@ def get_new_frame():    # to be implemented in coordination with the camera
     frame[0,1] = 3
     frame[1,0] = 3
     return frame
-    
+
 
 
 def image_pooling(image, new_width, new_height):
     return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
+def get2D(diff_variances, input_variances):
+    """
+    diff_variance and input_variance are three dimensional numpy arrays, with third dimension being frame number
+    Before inputting into this function, stack every frame from all images to diff_variance and input_variance
 
-def get_logistic(diff_variance, input_variance):
-    # to be implemented, get log probability of being window
-    return (0.5-diff_variance)*(input_variance-0.5)  # just a place holder
+    Returns:
+    2d numpy array with [variance, variance] as each row
+    """
+    return np.transpose(np.array((diff_variances.flatten(),input_variances.flatten())))
+
+def get_probability(diff_variance, input_variance):
+    model = tf.keras.models.load_model('model.h5')
+    features = get2D(diff_variance,input_variance)
+    output = model.predict(features)
+    output = output.reshape((diff_variance.shape))
+    return output
 
 
 def find_block(diff_variance, input_variance):
