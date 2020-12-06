@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import math
 import cv2
 import time
 from queue import Queue
@@ -33,7 +32,7 @@ rotation_frequency = 1  # enter in revolution per second
 # requires access to data taken pi/(2*b) ago and will thus lower the processing
 # speed or accuracy.
 # the key is to know b, which is equal to frequency*2pi
-frequency_const = rotation_frequency*2*math.pi
+frequency_const = rotation_frequency*2*np.pi
 
 difference_sum = np.sum(differences,axis=0)
 difference_square_sum = np.sum(np.square(differences),axis=0)
@@ -79,8 +78,8 @@ def find_block(diff_variance, input_variance):
     # than some certain value for that pixel to be considered a window
     windowMarker = np.zeros(
         (target_frame_height, target_frame_width), dtype=np.int)
-    windowLog = get_logistic(diff_variance, input_variance)
-    windowPixels = windowLog > 0
+    windowLog = get_probability(diff_variance, input_variance)
+    windowPixels = windowLog > 0.5
     windowPositions = []
     windowCount = 0
     for r in range(target_frame_height):
