@@ -1,11 +1,11 @@
 from tensorflow.keras.models import load_model
 import numpy as np
-from cv2 import resize, INTER_AREA, cvtColor, COLOR_RGB2GRAY
+import cv2
 import time
 from queue import Queue
 from picamera import PiCamera
 
-model = load_model('simpleLogistic.h5')
+model = load_model('simpleLogistic', compile=True)
 
 num_frame = 45
 frame_width = 128
@@ -46,15 +46,14 @@ input_square_sum = np.sum(np.square(input_frames), axis=0)
 
 def get_new_frame():
     # note that frame_height and frame_width are reversed
-    frame = np.empty((frame_height, frame_width, 3))
+    frame = np.ones((frame_height, frame_width, 3), dtype='uint8')
     camera.capture(frame, format='rgb', use_video_port=True)
-    frame = cvtColor(frame, COLOR_RGB2GRAY)
-    print(frame.shape)
-    return frame
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    return np.transpose(frame)
 
 
 def image_pooling(image, new_width, new_height):
-    return resize(image, (new_width, new_height), interpolation=INTER_AREA)
+    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
 
 def get2D(diff_variances, input_variances):
@@ -119,13 +118,11 @@ def computeRollingVariance(square_sum, s, num_elements):
 
 
 start = 0
-count = 1
 while True:
-    delta_time = 1.0  # get the delta time using api provided by raspberry PI or arduino
-    count += 1
-    if count % 100 == 0:
-        print('time ', time.time()-start)
-        start = time.time()
+    # get the delta time using api provided by raspberry PI or arduino
+    delta_time = time.time()-start
+    start = time.time()
+    print('deltatime ', time.time()-start)
 
     # dequeue variance
     input_sum -= input_frames[start_frame]
@@ -177,5 +174,8 @@ while True:
     # find windows
     windowPos = find_block(variances/(light_intensity_correction**2),
                            input_variance/(light_intensity_correction**2))
-    print(variances)
-    print(windowPos[0])
+    print(np.mean(variances), np.mean(input_variance))
+    if len(windowPos) > 0:
+        print(windowPos[0])
+    else:
+        print('no window found')
