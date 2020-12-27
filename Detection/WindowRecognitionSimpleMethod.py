@@ -1,16 +1,20 @@
-import tensorflow as tf
+from tensorflow.keras.models import load_model
 import numpy as np
-import cv2
+from cv2 import resize, INTER_AREA, cvtColor, COLOR_RGB2GRAY
 import time
 from queue import Queue
+from picamera import PiCamera
+
+model = load_model('simpleLogistic.h5')
 
 num_frame = 45
 frame_width = 128
-frame_height = 128
+frame_height = 96
 target_frame_width = 28
-target_frame_height = 28
+target_frame_height = 21
 light_intensity_correction = 127.5
 
+camera = PiCamera(resolution=(frame_width, frame_height), framerate=15)
 
 input_frames = np.zeros(
     (num_frame, frame_height, frame_width), dtype=np.float32)
@@ -34,25 +38,24 @@ rotation_frequency = 1  # enter in revolution per second
 # the key is to know b, which is equal to frequency*2pi
 frequency_const = rotation_frequency*2*np.pi
 
-difference_sum = np.sum(differences,axis=0)
-difference_square_sum = np.sum(np.square(differences),axis=0)
-input_sum = np.sum(input_frames,axis=0)
-input_square_sum = np.sum(np.square(input_frames),axis=0)
-video_path = 'Clock_Face_2Videvo.mov'
-cap = cv2.VideoCapture(video_path)
+difference_sum = np.sum(differences, axis=0)
+difference_square_sum = np.sum(np.square(differences), axis=0)
+input_sum = np.sum(input_frames, axis=0)
+input_square_sum = np.sum(np.square(input_frames), axis=0)
 
-def get_new_frame():    # to be implemented in coordination with the camera
-    # ret, frame = cap.read()
-    # return frame
-    frame = np.ones((2040,2040),dtype=np.float32)
-    frame[0,1] = 3
-    frame[1,0] = 3
+
+def get_new_frame():
+    # note that frame_height and frame_width are reversed
+    frame = np.empty((frame_height, frame_width, 3))
+    camera.capture(frame, format='rgb', use_video_port=True)
+    frame = cvtColor(frame, COLOR_RGB2GRAY)
+    print(frame.shape)
     return frame
 
 
-
 def image_pooling(image, new_width, new_height):
-    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    return resize(image, (new_width, new_height), interpolation=INTER_AREA)
+
 
 def get2D(diff_variances, input_variances):
     """
@@ -62,13 +65,13 @@ def get2D(diff_variances, input_variances):
     Returns:
     2d numpy array with [variance, variance] as each row
     """
-    return np.transpose(np.array((diff_variances.flatten(),input_variances.flatten())))
+    return np.transpose(np.array((diff_variances.flatten(), input_variances.flatten())))
+
 
 def get_probability(diff_variance, input_variance):
-    model = tf.keras.models.load_model('model.h5')
-    features = get2D(diff_variance,input_variance)
+    features = get2D(diff_variance, input_variance)
     output = model.predict(features)
-    output = output.reshape((diff_variance.shape))
+    output = output.reshape(diff_variance.shape)
     return output
 
 
@@ -110,8 +113,10 @@ def find_block(diff_variance, input_variance):
     return windowPositions
     # returns the average positions of windows as weighted by their probability of being a window
 
+
 def computeRollingVariance(square_sum, s, num_elements):
     return (square_sum/num_elements-np.square((s/num_elements)))
+
 
 start = 0
 count = 1
@@ -153,8 +158,10 @@ while True:
     difference_square_sum += differences[start_frame-1]**2
 
     # recompute variances
-    input_variance = computeRollingVariance(input_square_sum,input_sum,num_frame)
-    variances = computeRollingVariance(difference_square_sum,difference_sum,num_frame)
+    input_variance = computeRollingVariance(
+        input_square_sum, input_sum, num_frame)
+    variances = computeRollingVariance(
+        difference_square_sum, difference_sum, num_frame)
     # note this is only an estimation of variance, not the actual variance, which may be difficult
     # to evaluate on a rolling basis
 
@@ -171,3 +178,4 @@ while True:
     windowPos = find_block(variances/(light_intensity_correction**2),
                            input_variance/(light_intensity_correction**2))
     print(variances)
+    print(windowPos[0])
