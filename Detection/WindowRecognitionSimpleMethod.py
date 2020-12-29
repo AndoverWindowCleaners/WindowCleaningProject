@@ -1,20 +1,32 @@
-from tensorflow.keras.models import load_model
-import numpy as np
-import cv2
-import time
-from queue import Queue
 from picamera import PiCamera
+from queue import Queue
+import cv2
+import numpy as np
+from tensorflow import lite
+import time
 
-model = load_model('simpleLogistic', compile=True)
 
-num_frame = 45
+# model = load_model('simpleLogistic', compile=True)
+
+num_frame = 5
 frame_width = 128
 frame_height = 96
 target_frame_width = 28
 target_frame_height = 21
 light_intensity_correction = 127.5
 
-camera = PiCamera(resolution=(frame_width, frame_height), framerate=15)
+
+# Load the TFLite model and allocate tensors.
+interpreter = lite.Interpreter(model_path="simpleLogistic.tflite")
+interpreter.resize_tensor_input(
+    0, [target_frame_width*target_frame_height, 2], strict=True)
+interpreter.allocate_tensors()
+
+# Get input and output tensors.
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+camera = PiCamera(resolution=(frame_width, frame_height), framerate=30)
 
 input_frames = np.zeros(
     (num_frame, frame_height, frame_width), dtype=np.float32)
@@ -44,12 +56,12 @@ input_sum = np.sum(input_frames, axis=0)
 input_square_sum = np.sum(np.square(input_frames), axis=0)
 
 
-def get_new_frame():
-    # note that frame_height and frame_width are reversed
-    frame = np.ones((frame_height, frame_width, 3), dtype='uint8')
-    camera.capture(frame, format='rgb', use_video_port=True)
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    return np.transpose(frame)
+# def get_new_frame():
+#     # note that frame_height and frame_width are reversed
+#     frame = np.ones((frame_height, frame_width, 3), dtype='uint8')
+#     camera.capture(frame, format='rgb', use_video_port=True)
+#     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+#     return np.transpose(frame)
 
 
 def image_pooling(image, new_width, new_height):
@@ -69,46 +81,54 @@ def get2D(diff_variances, input_variances):
 
 def get_probability(diff_variance, input_variance):
     features = get2D(diff_variance, input_variance)
-    output = model.predict(features)
-    output = output.reshape(diff_variance.shape)
-    return output
+    # output = model.predict(features)
+    # output = output.reshape(diff_variance.shape)
+    # return output
+    # Test the model on random input data.
+    input_shape = input_details[0]['shape']
+    interpreter.set_tensor(
+        input_details[0]['index'], features)
+
+    interpreter.invoke()
+
+    # The function `get_tensor()` returns a copy of the tensor data.
+    # Use `tensor()` in order to get a pointer to the tensor.
+    output_data = interpreter.get_tensor(output_details[0]['index'])
+    output_data = output_data.reshape(diff_variance.shape)
+    return output_data
 
 
 def find_block(diff_variance, input_variance):
     # to be modified; obviously the input variance has to be larger
     # than some certain value and the diff_variance has to be smaller
     # than some certain value for that pixel to be considered a window
-    windowMarker = np.zeros(
-        (target_frame_height, target_frame_width), dtype=np.int)
     windowLog = get_probability(diff_variance, input_variance)
     windowPixels = windowLog > 0.5
     windowPositions = []
-    windowCount = 0
     for r in range(target_frame_height):
         for c in range(target_frame_width):
             if not windowPixels[r, c]:
                 continue
-            windowCount += 1
             pixelCount = 0.0
+            windowPixels[r, c] = True
             windowPositions.append(np.zeros((2), dtype=np.float32))
             frontier = Queue(target_frame_height*target_frame_width)
             frontier.put_nowait((r, c))
             while not frontier.empty:
                 (thisR, thisC) = frontier.get_nowait()
-                currentTotalPos = windowPositions[windowCount-1]*pixelCount
+                currentTotalPos = windowPositions[-1]*pixelCount
                 pixelCount += windowLog[thisR, thisC]
-                windowPositions[windowCount - 1] \
+                windowPositions[-1] \
                     = (currentTotalPos+np.array((thisR, thisC))*windowLog[thisR, thisC])/pixelCount
                 for hori in range(-1, 2):
                     for verti in range(-1, 2):
                         newR = thisR+verti
                         newC = thisC+hori
                         if newR < 0 or newR >= frame_height or newC < 0 or newC >= frame_width \
-                                or windowMarker[newR, newC] > 0:
+                                or not windowPixels[newR, newC]:
                             continue
-                        windowMarker[newR, newC] = windowCount
+                        windowPixels[newR, newC] = False
                         frontier.put_nowait((newR, newC))
-
     return windowPositions
     # returns the average positions of windows as weighted by their probability of being a window
 
@@ -118,11 +138,11 @@ def computeRollingVariance(square_sum, s, num_elements):
 
 
 start = 0
-while True:
+capture = np.ones((frame_height, frame_width, 3), dtype='uint8')
+for frame in camera.capture_continuous(capture, format="bgr", use_video_port=True):
     # get the delta time using api provided by raspberry PI or arduino
     delta_time = time.time()-start
     start = time.time()
-    print('deltatime ', time.time()-start)
 
     # dequeue variance
     input_sum -= input_frames[start_frame]
@@ -131,8 +151,9 @@ while True:
     difference_square_sum -= np.square(differences[start_frame-1])
 
     # read in image
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     input_frames[start_frame] = image_pooling(
-        get_new_frame(), frame_width, frame_height)
+        np.transpose(frame), frame_width, frame_height)
 
     # compute first derivative
     derivative1[start_frame % 2] = (
@@ -170,7 +191,6 @@ while True:
 
     # increment the modulo index counter
     start_frame = (start_frame+1) % num_frame
-
     # find windows
     windowPos = find_block(variances/(light_intensity_correction**2),
                            input_variance/(light_intensity_correction**2))
