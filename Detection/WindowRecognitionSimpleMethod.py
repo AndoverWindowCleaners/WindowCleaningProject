@@ -11,8 +11,8 @@ import time
 num_frame = 5
 frame_width = 128
 frame_height = 96
-target_frame_width = 28
-target_frame_height = 21
+target_frame_width = 12
+target_frame_height = 9
 light_intensity_correction = 127.5
 
 
@@ -29,16 +29,16 @@ output_details = interpreter.get_output_details()
 camera = PiCamera(resolution=(frame_width, frame_height), framerate=30)
 
 input_frames = np.zeros(
-    (num_frame, frame_height, frame_width), dtype=np.float32)
+    (num_frame, target_frame_width, target_frame_height), dtype=np.float32)
 derivative1 = np.zeros(
-    (2, frame_height, frame_width), dtype=np.float32)
+    (2, target_frame_width, target_frame_height), dtype=np.float32)
 cur_derivative2_corrected = np.zeros(
-    (frame_height, frame_width), dtype=np.float32)
+    (target_frame_width, target_frame_height), dtype=np.float32)
 differences = np.zeros(
-    (num_frame, frame_height, frame_width), dtype=np.float32)
+    (num_frame, target_frame_width, target_frame_height), dtype=np.float32)
 # note that these numpy arrays are used as cyclic arrays
 start_frame = 0
-rotation_frequency = 1  # enter in revolution per second
+rotation_frequency = 150  # enter in revolution per second
 
 # say the input frames are periodic and can be described by a*sin(bx+c)+d
 # its derivative is a*b*cos(bx+c)
@@ -50,11 +50,10 @@ rotation_frequency = 1  # enter in revolution per second
 # the key is to know b, which is equal to frequency*2pi
 frequency_const = rotation_frequency*2*np.pi
 
-difference_sum = np.sum(differences, axis=0)
-difference_square_sum = np.sum(np.square(differences), axis=0)
-input_sum = np.sum(input_frames, axis=0)
-input_square_sum = np.sum(np.square(input_frames), axis=0)
-
+diff_mean = np.mean(differences, axis=0)
+input_mean = np.mean(input_frames, axis=0)
+input_varSum = np.var(input_frames, axis=0)
+diff_varSum = np.var(differences, axis=0)
 
 # def get_new_frame():
 #     # note that frame_height and frame_width are reversed
@@ -65,7 +64,7 @@ input_square_sum = np.sum(np.square(input_frames), axis=0)
 
 
 def image_pooling(image, new_width, new_height):
-    return cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image, (new_height, new_width), interpolation=cv2.INTER_AREA)
 
 
 def get2D(diff_variances, input_variances):
@@ -105,55 +104,56 @@ def find_block(diff_variance, input_variance):
     windowLog = get_probability(diff_variance, input_variance)
     windowPixels = windowLog > 0.5
     windowPositions = []
-    for r in range(target_frame_height):
-        for c in range(target_frame_width):
-            if not windowPixels[r, c]:
+    for x in range(target_frame_width):
+        for y in range(target_frame_height):
+            if not windowPixels[x, y]:
                 continue
             pixelCount = 0.0
-            windowPixels[r, c] = True
+            windowPixels[x, y] = True
             windowPositions.append(np.zeros((2), dtype=np.float32))
             frontier = Queue(target_frame_height*target_frame_width)
-            frontier.put_nowait((r, c))
+            frontier.put_nowait((x, y))
             while not frontier.empty:
-                (thisR, thisC) = frontier.get_nowait()
+                (thisX, thisY) = frontier.get_nowait()
                 currentTotalPos = windowPositions[-1]*pixelCount
-                pixelCount += windowLog[thisR, thisC]
+                pixelCount += windowLog[thisX, thisY]
                 windowPositions[-1] \
-                    = (currentTotalPos+np.array((thisR, thisC))*windowLog[thisR, thisC])/pixelCount
+                    = (currentTotalPos+np.array((thisX, thisY))*windowLog[thisX, thisY])/pixelCount
                 for hori in range(-1, 2):
                     for verti in range(-1, 2):
-                        newR = thisR+verti
-                        newC = thisC+hori
-                        if newR < 0 or newR >= frame_height or newC < 0 or newC >= frame_width \
-                                or not windowPixels[newR, newC]:
+                        newX = thisX+hori
+                        newY = thisY+verti
+                        if newY < 0 or newY >= target_frame_height or newX < 0 or newX >= target_frame_width \
+                                or not windowPixels[newX, newY]:
                             continue
-                        windowPixels[newR, newC] = False
-                        frontier.put_nowait((newR, newC))
+                        windowPixels[newX, newY] = False
+                        frontier.put_nowait((newX, newY))
     return windowPositions
     # returns the average positions of windows as weighted by their probability of being a window
 
 
-def computeRollingVariance(square_sum, s, num_elements):
-    return (square_sum/num_elements-np.square((s/num_elements)))
+def computeRollingVarianceSum(varSum, mean, prev_mean, cur, prev):
+    return varSum + (cur-prev_mean)*(cur-mean)-(prev-prev_mean)*(prev-mean)
 
 
 start = 0
 capture = np.ones((frame_height, frame_width, 3), dtype='uint8')
 for frame in camera.capture_continuous(capture, format="bgr", use_video_port=True):
-    # get the delta time using api provided by raspberry PI or arduino
     delta_time = time.time()-start
     start = time.time()
 
-    # dequeue variance
-    input_sum -= input_frames[start_frame]
-    input_square_sum -= np.square(input_frames[start_frame])
-    difference_sum -= differences[start_frame-1]
-    difference_square_sum -= np.square(differences[start_frame-1])
+    # dequeue mean and sum
+    prev_input_mean = input_mean.copy()
+    prev_diff_mean = diff_mean.copy()
+    input_mean -= input_frames[start_frame]/num_frame
+    diff_mean -= differences[start_frame-1]/num_frame
+    prev_input = input_frames[start_frame].copy()
+    prev_diff = differences[start_frame-1].copy()
 
     # read in image
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     input_frames[start_frame] = image_pooling(
-        np.transpose(frame), frame_width, frame_height)
+        np.transpose(frame), target_frame_width, target_frame_height)
 
     # compute first derivative
     derivative1[start_frame % 2] = (
@@ -170,31 +170,27 @@ for frame in camera.capture_continuous(capture, format="bgr", use_video_port=Tru
         input_frames[(start_frame-1)]
 
     # add in new variance of the newly read in image and newly computed difference
-    input_sum += input_frames[start_frame]
-    input_square_sum += input_frames[start_frame]**2
-    difference_sum += differences[start_frame-1]
-    difference_square_sum += differences[start_frame-1]**2
+    input_mean += input_frames[start_frame]/num_frame
+    diff_mean += differences[start_frame-1]/num_frame
 
     # recompute variances
-    input_variance = computeRollingVariance(
-        input_square_sum, input_sum, num_frame)
-    variances = computeRollingVariance(
-        difference_square_sum, difference_sum, num_frame)
+    input_varSum = computeRollingVarianceSum(input_varSum,
+                                             input_mean, prev_input_mean, input_frames[start_frame], prev_input)
+    diff_varSum = computeRollingVarianceSum(diff_varSum,
+                                            diff_mean, prev_diff_mean, differences[start_frame-1], prev_diff)
     # note this is only an estimation of variance, not the actual variance, which may be difficult
     # to evaluate on a rolling basis
 
-    # scale down variance to ensure connectiveness
-    variances = image_pooling(
-        variances, target_frame_width, target_frame_height)
-    input_variance = image_pooling(
-        input_variance, target_frame_width, target_frame_height)
+    diff_variance = diff_varSum/num_frame
+    input_variance = input_varSum/num_frame
 
     # increment the modulo index counter
     start_frame = (start_frame+1) % num_frame
     # find windows
-    windowPos = find_block(variances/(light_intensity_correction**2),
+    windowPos = find_block(diff_variance/(light_intensity_correction**2),
                            input_variance/(light_intensity_correction**2))
-    print(np.mean(variances), np.mean(input_variance))
+    print(np.mean(input_variance), np.mean(diff_variance),
+          np.mean(input_frames[start_frame]), np.mean(cur_derivative2_corrected), np.mean(differences[start_frame-1]))
     if len(windowPos) > 0:
         print(windowPos[0])
     else:
