@@ -1,5 +1,3 @@
-with open('/home/pi/Desktop/runOnStartUp/printer.txt','w') as b:
-    b.write('hello225')
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -7,6 +5,8 @@ import time
 import cv2
 camera = PiCamera(resolution=(128, 96), framerate=30)
 camera.framerate = 30
+camera.vflip = True
+camera.hflip = True
 rawCapture = PiRGBArray(camera, size=(128, 96))
 time.sleep(0.1)
 
