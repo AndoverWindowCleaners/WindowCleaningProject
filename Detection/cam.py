@@ -3,6 +3,7 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
 import cv2
+import os
 camera = PiCamera(resolution=(128, 96), framerate=30)
 camera.framerate = 30
 camera.vflip = True
@@ -11,7 +12,7 @@ rawCapture = PiRGBArray(camera, size=(128, 96))
 time.sleep(0.1)
 
 fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-video_filename = '/home/pi/Desktop/runOnStartUp/indoor.avi'
+video_filename = '/home/pi/Desktop/WindowCleaningProject/new_video.avi'
 out = cv2.VideoWriter(video_filename, fourcc, 30, (128, 96))
 
 time.sleep(3)
@@ -29,3 +30,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
 #cv2.destroyAllWindows()
 out.release()
+os.system('cd /home/pi/Desktop/WindowCleaningProject')
+os.system('git add .')
+os.system('git commit -m "new video"')
+os.system('git push')
