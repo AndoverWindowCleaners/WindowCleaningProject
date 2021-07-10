@@ -20,7 +20,7 @@ file_name = datetime.now().strftime("%Y%m%d-%H%M%S")
 print(file_name)
 video_filename = '/home/pi/Desktop/WindowCleaningProject/training_videos/'+file_name+'.avi'
 print(video_filename)
-out = cv2.VideoWriter(video_filename, fourcc, 30, (128, 96))
+out = cv2.VideoWriter('~/Desktop/test.avi', fourcc, 30, (128, 96))
 
 time.sleep(3)
 
