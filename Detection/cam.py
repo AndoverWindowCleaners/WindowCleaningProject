@@ -5,6 +5,9 @@ import time
 import cv2
 import os
 from datetime import datetime
+from gpiozero import LED
+
+rotor = LED(4)
 camera = PiCamera(resolution=(128, 96), framerate=30)
 camera.framerate = 30
 camera.vflip = True
@@ -19,6 +22,7 @@ out = cv2.VideoWriter(video_filename, fourcc, 30, (128, 96))
 
 time.sleep(3)
 
+rotor.on()
 start = time.time()
 
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
@@ -32,6 +36,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
 #cv2.destroyAllWindows()
 out.release()
+rotor.off()
 os.system('cd /home/pi/Desktop/WindowCleaningProject')
 os.system('git add .')
 os.system('git commit -m "new video"')
