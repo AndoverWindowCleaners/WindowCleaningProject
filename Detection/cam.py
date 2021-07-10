@@ -13,7 +13,8 @@ rawCapture = PiRGBArray(camera, size=(128, 96))
 time.sleep(0.1)
 
 fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-video_filename = f'/home/pi/Desktop/WindowCleaningProject/training_videos/{datetime.now()}.avi'
+file_name = datetime.now().strftime("%Y%m%d-%H%M%S")
+video_filename = f'/home/pi/Desktop/WindowCleaningProject/training_videos/{file_name}.avi'
 out = cv2.VideoWriter(video_filename, fourcc, 30, (128, 96))
 
 time.sleep(3)
