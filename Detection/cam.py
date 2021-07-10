@@ -17,7 +17,9 @@ time.sleep(0.1)
 
 fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
 file_name = datetime.now().strftime("%Y%m%d-%H%M%S")
-video_filename = f'/home/pi/Desktop/WindowCleaningProject/training_videos/{file_name}.avi'
+print(file_name)
+video_filename = '/home/pi/Desktop/WindowCleaningProject/training_videos/'+file_name+'.avi'
+print(video_filename)
 out = cv2.VideoWriter(video_filename, fourcc, 30, (128, 96))
 
 time.sleep(3)
@@ -37,6 +39,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 #cv2.destroyAllWindows()
 out.release()
 rotor.off()
+time.sleep(1)
 os.system('cd /home/pi/Desktop/WindowCleaningProject')
 os.system('git add .')
 os.system('git commit -m "new video"')
