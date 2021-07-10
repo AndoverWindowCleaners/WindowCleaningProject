@@ -4,6 +4,7 @@ from picamera import PiCamera
 import time
 import cv2
 import os
+from datetime import datetime
 camera = PiCamera(resolution=(128, 96), framerate=30)
 camera.framerate = 30
 camera.vflip = True
@@ -12,7 +13,7 @@ rawCapture = PiRGBArray(camera, size=(128, 96))
 time.sleep(0.1)
 
 fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-video_filename = '/home/pi/Desktop/WindowCleaningProject/new_video.avi'
+video_filename = f'/home/pi/Desktop/WindowCleaningProject/training_videos/{datetime.now()}.avi'
 out = cv2.VideoWriter(video_filename, fourcc, 30, (128, 96))
 
 time.sleep(3)
