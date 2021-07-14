@@ -10,7 +10,8 @@ video_paths = [
     '20210710-195636.avi',
     '20210710-200436.avi',
     '20210710-195957.avi',
-    '20210710-194508.avi'
+    '20210710-194508.avi',
+    '20210710-202536.avi'
 ]
 video_paths = [base_dir+video_path for video_path in video_paths]
 captures = [cv2.VideoCapture(video_path) for video_path in video_paths]
@@ -31,7 +32,7 @@ for j,length,capture in zip(range(len(lengths)),lengths,captures):
             frame = image_pooling(frame, 1, 1)
             all_frames[j][i] = frame
 
-all_frames = [all_frame/255.0 for all_frame in all_frames]
+all_frames = [(all_frame/255.0)**2 for all_frame in all_frames]
 
 all_coeffs = [np.fft.rfft(all_frame, axis=0) for all_frame in all_frames]
 
