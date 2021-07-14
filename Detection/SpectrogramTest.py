@@ -45,7 +45,7 @@ all_spectrs = []
 all_freqs = []
 all_times = []
 for all_frame in all_frames:
-    freqs, times, spectr = signal.spectrogram(all_frame, fs=30.0, window=('hamming'), noverlap=1, nperseg=15, axis=0, mode='psd')
+    freqs, times, spectr = signal.spectrogram(all_frame, fs=30.0, window=('hamming'), noverlap=13, nperseg=14, axis=0, mode='magnitude')
     # spectr = spectr[3:]/np.sum(spectr[0:3],axis=0)
     # freqs = freqs[3:]
     print(freqs[:10])
@@ -57,6 +57,6 @@ fig, axes = plt.subplots(2,7)
 for i,all_frame,ax in zip(range(len(all_frames)),all_frames,axes.flatten()):
     freqs,times,spectr = all_freqs[i],all_times[i],all_spectrs[i]
     print(freqs.shape, spectr.shape)
-    ax.pcolormesh(times, freqs, spectr[:,11,1,0,:],shading='nearest')
+    ax.pcolormesh(times, freqs, np.mean(spectr[:,:,:,2,:],axis=(1,2)),shading='nearest')
     
 plt.show()
