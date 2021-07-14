@@ -1,8 +1,12 @@
+from operator import inv
 from matplotlib import mlab
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
+
+def inv_CRF(x):
+    return x**0.8
 
 base_dir = './Detection/training_videos/'
 #,'20210710-195636.avi','20210710-200436.avi','20210710-195957.avi','20210710-194508.avi'
@@ -40,7 +44,8 @@ for j,length,capture in zip(range(len(lengths)),lengths,captures):
             frame = image_pooling(frame, 12, 9)
             all_frames[j][i] = frame
 
-all_frames = [(all_frame/255.0) for all_frame in all_frames]
+all_frames = [inv_CRF(all_frame/255.0) for all_frame in all_frames]
+print(np.mean(all_frames[0]))
 all_spectrs = []
 all_freqs = []
 all_times = []
