@@ -38,7 +38,3 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 #cv2.destroyAllWindows()
 out.release()
 rotor.off()
-os.system('cd /home/pi/Desktop/WindowCleaningProject')
-os.system('git add .')
-os.system('git commit -m "new video"')
-os.system('git push')
