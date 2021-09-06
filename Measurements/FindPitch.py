@@ -1,3 +1,7 @@
+"""
+Uses method described in pdf in root director
+"""
+
 import math
 alpha=math.pi/12 #random value determined at build
 sin=math.sin(2*alpha)
