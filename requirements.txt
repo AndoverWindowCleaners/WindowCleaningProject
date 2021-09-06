@@ -3,3 +3,4 @@ cv2
 tensorflow
 matplotlib
 scipy
+picamera
