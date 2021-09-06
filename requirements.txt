@@ -4,3 +4,4 @@ cv2
 matplotlib
 scipy
 picamera
+gpiozero

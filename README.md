@@ -9,7 +9,7 @@ Team Members:
 * Patrick Chen
 * Nicholas Donnellan
 * Michael Huang
-* Davin Jeoung
+* Davin Jeong
 * Sam Keamy
 * Sol Kim
 * Michael Squeri
