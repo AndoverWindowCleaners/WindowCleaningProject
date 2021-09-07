@@ -1,5 +1,5 @@
 # Security Policy
 
-## Reporting a Vulnerability
+## Reporting Vulnerabilities
 
 To report a vulnerability, please email andoverwindowcleaners@gmail.com.
