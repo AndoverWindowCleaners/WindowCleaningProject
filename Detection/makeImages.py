@@ -36,4 +36,3 @@ for name in os.listdir('training_videos'):
 
 
     cap.release()
-# cv2.destroyAllWindows()
