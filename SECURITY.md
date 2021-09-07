@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-To report a vulnerability, please email Andoverwindowcleaners@gmail.com.
+To report a vulnerability, please email andoverwindowcleaners@gmail.com.
