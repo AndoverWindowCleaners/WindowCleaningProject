@@ -1,0 +1,37 @@
+<annotation>
+	<folder>folder-39-w</folder>
+	<filename>0060.jpg</filename>
+	<path>/folder-39-w/0060.jpg</path>
+	<source>
+		<database>Unspecified</database>
+	</source>
+	<size>
+		<width>128</width>
+		<height>96</height>
+		<depth>3</depth>
+	</size>
+	<object>
+		<name>window</name>
+		<pose>Unspecified</pose>
+		<truncated>Unspecified</truncated>
+		<difficult>Unspecified</difficult>
+		<bndbox>
+			<xmin>1</xmin>
+			<ymin>1</ymin>
+			<xmax>51</xmax>
+			<ymax>62</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>window</name>
+		<pose>Unspecified</pose>
+		<truncated>Unspecified</truncated>
+		<difficult>Unspecified</difficult>
+		<bndbox>
+			<xmin>76</xmin>
+			<ymin>1</ymin>
+			<xmax>128</xmax>
+			<ymax>96</ymax>
+		</bndbox>
+	</object>
+</annotation>
