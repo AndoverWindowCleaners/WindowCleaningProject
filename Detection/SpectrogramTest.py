@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 
+SAMPLING_FREQUENCY = 30.0
+
 def inv_CRF(x):
     return x**0.8
 
@@ -46,11 +48,11 @@ for j,length,capture in zip(range(len(lengths)),lengths,captures):
 
 all_frames = [inv_CRF(all_frame/255.0) for all_frame in all_frames]
 print(np.mean(all_frames[0]))
-all_spectrs = []
-all_freqs = []
-all_times = []
+
+all_spectrs, all_freqs, all_times = ([], ) * 3 # Initialize three empty lists
+
 for all_frame in all_frames:
-    freqs, times, spectr = signal.spectrogram(all_frame, fs=30.0, window=('hamming'), noverlap=13, nperseg=14, axis=0, mode='magnitude')
+    freqs, times, spectr = signal.spectrogram(all_frame, fs=SAMPLING_FREQUENCY, window=('hamming'), noverlap=13, nperseg=14, axis=0, mode='magnitude')
     # spectr = spectr[3:]/np.sum(spectr[0:3],axis=0)
     # freqs = freqs[3:]
     print(freqs[:10])
